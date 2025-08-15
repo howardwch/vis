@@ -9,10 +9,11 @@
     sftp_server: "192.168.0.62"
     sftp_user: "root"
     sftp_password: "redhat"
+    private_key_file: "./private_key"  # <-- Set your private key path here
   tasks:
-    - name: Execute FortiGate backup command via SSH
+    - name: Execute FortiGate backup command via SSH (using private key)
       ansible.builtin.shell: |
-        ssh -o StrictHostKeyChecking=no {{ fgt_user }}@{{ fgt_ip }} "execute backup config sftp {{ backup_file }} {{ sftp_server }} {{ sftp_user }} {{ sftp_password }}"
+        ssh -i {{ private_key_file }} -o StrictHostKeyChecking=no {{ fgt_user }}@{{ fgt_ip }} "execute backup config sftp {{ backup_file }} {{ sftp_server }} {{ sftp_user }} {{ sftp_password }}"
       register: backup_result
 
     - name: Show backup result
