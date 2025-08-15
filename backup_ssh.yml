@@ -15,6 +15,10 @@
       copy:
         src: private_key
         dest: /tmp/private_key
+    - name: file permission
+      ansible.builtin.file:
+        path: /tmp/private_key
+        mode: '0600'
     - name: Execute FortiGate backup command via SSH (using private key)
       ansible.builtin.shell: |
         ssh -i {{ private_key_file }} -o StrictHostKeyChecking=no {{ fgt_user }}@{{ fgt_ip }} "execute backup config sftp {{ backup_file }} {{ sftp_server }} {{ sftp_user }} {{ sftp_password }}"
