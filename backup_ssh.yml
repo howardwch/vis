@@ -1,0 +1,20 @@
+---
+- name: Backup FortiGate configuration via SSH
+  hosts: localhost
+  gather_facts: no
+  vars:
+    fgt_ip: "192.168.0.188"
+    fgt_user: "admin"
+    backup_file: "fg_backup_{{ lookup('pipe', 'date +%Y%m%d_%H%M%S') }}.conf"
+    sftp_server: "192.168.0.62"
+    sftp_user: "root"
+    sftp_password: "redhat"
+  tasks:
+    - name: Execute FortiGate backup command via SSH
+      ansible.builtin.shell: |
+        ssh -o StrictHostKeyChecking=no {{ fgt_user }}@{{ fgt_ip }} "execute backup config sftp {{ backup_file }} {{ sftp_server }} {{ sftp_user }} {{ sftp_password }}"
+      register: backup_result
+
+    - name: Show backup result
+      ansible.builtin.debug:
+        var: backup_result.stdout
