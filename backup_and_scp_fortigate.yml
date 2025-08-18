@@ -1,0 +1,48 @@
+---
+- name: Generate backup filename
+  ansible.builtin.shell: date +%Y%m%d_%H%M%S
+  register: backup_time_result
+  delegate_to: localhost
+
+- name: Set backup_file variable
+  set_fact:
+    backup_file: "/root/forti/fg_backup_{{ item.host }}_{{ backup_time_result.stdout }}.conf"
+
+- name: Backup FortiGate configuration
+  fortios_monitor:
+    selector: "backup.system.config"
+    vdom: "{{ item.vdom }}"
+    params:
+      scope: "global"
+      destination: "upload"
+  register: backup_result
+  vars:
+    ansible_host: "{{ item.host }}"
+    ansible_user: "{{ item.username }}"
+    ansible_password: "{{ item.password }}"
+    ansible_network_os: fortinet.fortios.fortios
+    ansible_httpapi_use_ssl: true
+    ansible_httpapi_validate_certs: "{{ item.validate_certs | default(false) }}"
+    ansible_connection: httpapi
+    ansible_httpapi_port: "{{ item.port | default(443) }}"
+
+- name: Save backup to file
+  copy:
+    content: "{{ backup_result.meta.raw }}"
+    dest: "{{ backup_file }}"
+  when: backup_result.meta.raw is defined
+
+- name: Show backup result
+  debug:
+    var: backup_result
+
+- name: SCP 備份檔案到多個遠端主機
+  ansible.builtin.shell: |
+    scp {{ backup_file }} {{ scp_item.user }}@{{ scp_item.host }}:{{ scp_item.dest_dir }}/
+  args:
+    executable: /bin/bash
+  loop: "{{ scp_targets }}"
+  loop_control:
+    loop_var: scp_item
+  when: backup_result.meta.raw is defined
+  delegate_to: localhost
