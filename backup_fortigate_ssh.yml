@@ -1,0 +1,32 @@
+---
+- name: Backup FortiGate configuration via SSH
+  hosts: localhost
+  gather_facts: no
+  vars:
+    backup_file: "fg_backup_{{ lookup('pipe', 'date +%Y%m%d_%H%M%S') }}.conf"
+    sftp_server: "192.168.0.62"
+    sftp_user: "root"
+    sftp_password: "redhat"
+    private_key_file: "/tmp/private_key"  # <-- Set your private key path here
+  tasks:
+    - name: copy
+      copy:
+        src: private_key
+        dest: /tmp/private_key
+    - name: file permission
+      ansible.builtin.file:
+        path: /tmp/private_key
+        mode: '0600'
+
+    - name: Execute FortiGate backup command via SSH (using private key) for multiple devices
+      ansible.builtin.shell: |
+        ssh -i {{ private_key_file }} -o StrictHostKeyChecking=no {{ item.username }}@{{ item.host }} "execute backup config sftp {{ backup_file }} {{ sftp_server }} {{ sftp_user }} {{ sftp_password }}"
+      loop: "{{ fortigates }}"
+      register: backup_result
+      loop_control:
+        label: "{{ item.host }}"
+
+    - name: Show backup result for each device
+      ansible.builtin.debug:
+        msg: "{{ item.item.host }}: {{ item.stdout }}"
+      loop: "{{ backup_result.results }}"
